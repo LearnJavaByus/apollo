@@ -33,16 +33,23 @@ public class AppController {
     this.adminService = adminService;
   }
 
+  /**
+   * 创建 App
+   * @param dto  AppDTO 对象
+   * @return  App 对象
+   */
   @PostMapping("/apps")
   public AppDTO create(@Valid @RequestBody AppDTO dto) {
+    // 将 AppDTO 转换成 App 对象
     App entity = BeanUtils.transform(App.class, dto);
+    // 判断 `appId` 是否已经存在对应的 App 对象。若已经存在，抛出 BadRequestException 异常。
     App managedEntity = appService.findOne(entity.getAppId());
     if (managedEntity != null) {
       throw new BadRequestException("app already exist.");
     }
-
+    // 保存 App 对象到数据库
     entity = adminService.createNewApp(entity);
-
+    // 将保存的 App 对象，转换成 AppDTO 返回
     return BeanUtils.transform(AppDTO.class, entity);
   }
 
