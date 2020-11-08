@@ -5,11 +5,17 @@ import javax.validation.constraints.Pattern;
 
 public class NamespaceDTO extends BaseDTO{
   private long id;
-
+  /**
+   * App 编号
+   */
   private String appId;
-
+  /**
+   * Cluster 名字
+   */
   private String clusterName;
-
+  /**
+   * Namespace 名字
+   */
   @Pattern(
       regexp = InputValidator.CLUSTER_NAMESPACE_VALIDATOR,
       message = "Invalid Namespace format: " + InputValidator.INVALID_CLUSTER_NAMESPACE_MESSAGE

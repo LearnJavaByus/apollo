@@ -75,19 +75,21 @@ public class AppNamespaceService {
 
   @Transactional
   public void createDefaultAppNamespace(String appId) {
+    // 校验 `name` 在 App 下唯一
     if (!isAppNamespaceNameUnique(appId, ConfigConsts.NAMESPACE_APPLICATION)) {
       throw new BadRequestException(String.format("App already has application namespace. AppId = %s", appId));
     }
-
+    // 创建 AppNamespace 对象
     AppNamespace appNs = new AppNamespace();
     appNs.setAppId(appId);
     appNs.setName(ConfigConsts.NAMESPACE_APPLICATION);
     appNs.setComment("default app namespace");
     appNs.setFormat(ConfigFileFormat.Properties.getValue());
+    // 设置 AppNamespace 的创建和修改人为当前管理员
     String userId = userInfoHolder.getUser().getUserId();
     appNs.setDataChangeCreatedBy(userId);
     appNs.setDataChangeLastModifiedBy(userId);
-
+    // 保存 AppNamespace 到数据库
     appNamespaceRepository.save(appNs);
   }
 
@@ -105,50 +107,50 @@ public class AppNamespaceService {
   public AppNamespace createAppNamespaceInLocal(AppNamespace appNamespace, boolean appendNamespacePrefix) {
     String appId = appNamespace.getAppId();
 
-    //add app org id as prefix
+    //add app org id as prefix   // 校验对应的 App 是否存在。若不存在，抛出 BadRequestException 异常
     App app = appService.load(appId);
     if (app == null) {
       throw new BadRequestException("App not exist. AppId = " + appId);
     }
-
+    // 拼接 AppNamespace 的 `name` 属性。
     StringBuilder appNamespaceName = new StringBuilder();
     //add prefix postfix
     appNamespaceName
-        .append(appNamespace.isPublic() && appendNamespacePrefix ? app.getOrgId() + "." : "")
+        .append(appNamespace.isPublic() && appendNamespacePrefix ? app.getOrgId() + "." : "")// 公用类型，拼接组织编号
         .append(appNamespace.getName())
         .append(appNamespace.formatAsEnum() == ConfigFileFormat.Properties ? "" : "." + appNamespace.getFormat());
     appNamespace.setName(appNamespaceName.toString());
-
+    // 设置 AppNamespace 的 `comment` 属性为空串，若为 null 。
     if (appNamespace.getComment() == null) {
       appNamespace.setComment("");
     }
-
+    // 校验 AppNamespace 的 `format` 是否合法
     if (!ConfigFileFormat.isValidFormat(appNamespace.getFormat())) {
      throw new BadRequestException("Invalid namespace format. format must be properties、json、yaml、yml、xml");
     }
-
+    // 设置 AppNamespace 的创建和修改人
     String operator = appNamespace.getDataChangeCreatedBy();
     if (StringUtils.isEmpty(operator)) {
-      operator = userInfoHolder.getUser().getUserId();
+      operator = userInfoHolder.getUser().getUserId();// 当前登录管理员
       appNamespace.setDataChangeCreatedBy(operator);
     }
 
     appNamespace.setDataChangeLastModifiedBy(operator);
 
-    // globally uniqueness check for public app namespace
+    // globally uniqueness check for public app namespace // 公用类型，校验 `name` 在全局唯一
     if (appNamespace.isPublic()) {
       checkAppNamespaceGlobalUniqueness(appNamespace);
     } else {
-      // check private app namespace
+      // check private app namespace // 私有类型，校验 `name` 在 App 下唯一
       if (appNamespaceRepository.findByAppIdAndName(appNamespace.getAppId(), appNamespace.getName()) != null) {
         throw new BadRequestException("Private AppNamespace " + appNamespace.getName() + " already exists!");
       }
       // should not have the same with public app namespace
       checkPublicAppNamespaceGlobalUniqueness(appNamespace);
     }
-
+    // 保存 AppNamespace 到数据库
     AppNamespace createdAppNamespace = appNamespaceRepository.save(appNamespace);
-
+    // 初始化 Namespace 的 Role 们
     roleInitializationService.initNamespaceRoles(appNamespace.getAppId(), appNamespace.getName(), operator);
     roleInitializationService.initNamespaceEnvRoles(appNamespace.getAppId(), appNamespace.getName(), operator);
 

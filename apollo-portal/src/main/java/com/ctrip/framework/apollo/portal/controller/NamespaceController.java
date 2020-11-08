@@ -45,6 +45,9 @@ import java.util.stream.Collectors;
 
 import static com.ctrip.framework.apollo.common.utils.RequestPrecondition.checkModel;
 
+/**
+ * 提供 AppNamespace 和 Namespace 的 API 。
+ */
 @RestController
 public class NamespaceController {
 
@@ -125,21 +128,23 @@ public class NamespaceController {
   @PostMapping("/apps/{appId}/namespaces")
   public ResponseEntity<Void> createNamespace(@PathVariable String appId,
                                               @RequestBody List<NamespaceCreationModel> models) {
-
+    // 校验 `models` 非空
     checkModel(!CollectionUtils.isEmpty(models));
-
+    // 初始化 Namespace 的 Role 们
     String namespaceName = models.get(0).getNamespace().getNamespaceName();
     String operator = userInfoHolder.getUser().getUserId();
 
     roleInitializationService.initNamespaceRoles(appId, namespaceName, operator);
     roleInitializationService.initNamespaceEnvRoles(appId, namespaceName, operator);
-
+    // 循环 `models` ，创建 Namespace 对象
     for (NamespaceCreationModel model : models) {
       NamespaceDTO namespace = model.getNamespace();
+      // 校验相关参数非空
       RequestPrecondition.checkArgumentsNotEmpty(model.getEnv(), namespace.getAppId(),
                                                  namespace.getClusterName(), namespace.getNamespaceName());
 
       try {
+        // 创建 Namespace 对象
         namespaceService.createNamespace(Env.valueOf(model.getEnv()), namespace);
       } catch (Exception e) {
         logger.error("create namespace fail.", e);
@@ -148,7 +153,7 @@ public class NamespaceController {
                         namespace.getNamespaceName()), e);
       }
     }
-
+    // 授予 Namespace Role 给当前管理员
     namespaceService.assignNamespaceRoleToOperator(appId, namespaceName,userInfoHolder.getUser().getUserId());
 
     return ResponseEntity.ok().build();
@@ -192,20 +197,24 @@ public class NamespaceController {
   public AppNamespace createAppNamespace(@PathVariable String appId,
       @RequestParam(defaultValue = "true") boolean appendNamespacePrefix,
       @Valid @RequestBody AppNamespace appNamespace) {
+    // 校验 AppNamespace 的 `name` 格式正确。
     if (!InputValidator.isValidAppNamespace(appNamespace.getName())) {
       throw new BadRequestException(String.format("Invalid Namespace format: %s",
           InputValidator.INVALID_CLUSTER_NAMESPACE_MESSAGE + " & " + InputValidator.INVALID_NAMESPACE_NAMESPACE_MESSAGE));
     }
-
+    // 保存 AppNamespace 对象到数据库
     AppNamespace createdAppNamespace = appNamespaceService.createAppNamespaceInLocal(appNamespace, appendNamespacePrefix);
-
+    // 赋予权限，若满足如下任一条件：
+    // 1. 公开类型的 AppNamespace 。
+    // 2. 私有类型的 AppNamespace ，并且允许 App 管理员创建私有类型的 AppNamespace 。
     if (portalConfig.canAppAdminCreatePrivateNamespace() || createdAppNamespace.isPublic()) {
+      // 授予 Namespace Role
       namespaceService.assignNamespaceRoleToOperator(appId, appNamespace.getName(),
           userInfoHolder.getUser().getUserId());
     }
-
+    // 发布 AppNamespaceCreationEvent 创建事件
     publisher.publishEvent(new AppNamespaceCreationEvent(createdAppNamespace));
-
+    // 返回创建的 AppNamespace 对象
     return createdAppNamespace;
   }
 

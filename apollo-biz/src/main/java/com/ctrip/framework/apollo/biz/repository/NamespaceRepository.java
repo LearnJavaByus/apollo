@@ -9,6 +9,9 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 
 import java.util.List;
 
+/**
+ * 提供 Namespace 的数据访问 给 Admin Service 和 Config Service
+ */
 public interface NamespaceRepository extends PagingAndSortingRepository<Namespace, Long> {
 
   List<Namespace> findByAppIdAndClusterNameOrderByIdAsc(String appId, String clusterName);

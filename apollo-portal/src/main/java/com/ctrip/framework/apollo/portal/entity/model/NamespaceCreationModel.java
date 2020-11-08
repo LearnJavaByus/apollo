@@ -4,9 +4,13 @@ import com.ctrip.framework.apollo.common.dto.NamespaceDTO;
 
 
 public class NamespaceCreationModel {
-
+  /**
+   * 环境
+   */
   private String env;
-
+  /**
+   * Namespace 信息
+   */
   private NamespaceDTO namespace;
 
   public String getEnv() {

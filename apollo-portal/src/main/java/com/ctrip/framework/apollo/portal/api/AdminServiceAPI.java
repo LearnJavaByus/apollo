@@ -64,7 +64,9 @@ public class AdminServiceAPI {
     }
   }
 
-
+  /**
+   * 实现 API 抽象类，封装对 Admin Service 的 AppNamespace 和 Namespace 两个模块的 API 调用。
+   */
   @Service
   public static class NamespaceAPI extends API {
 

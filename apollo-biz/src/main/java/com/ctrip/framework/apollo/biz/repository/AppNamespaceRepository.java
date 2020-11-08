@@ -9,7 +9,9 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 import java.util.List;
 import java.util.Set;
 
-
+/**
+ * 提供 AppNamespace 的数据访问 给 Admin Service 和 Config Service
+ */
 public interface AppNamespaceRepository extends PagingAndSortingRepository<AppNamespace, Long>{
 
   AppNamespace findByAppIdAndName(String appId, String namespaceName);

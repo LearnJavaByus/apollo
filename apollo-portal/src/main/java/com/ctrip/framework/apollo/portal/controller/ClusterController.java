@@ -34,9 +34,10 @@ public class ClusterController {
   public ClusterDTO createCluster(@PathVariable String appId, @PathVariable String env,
                                   @Valid @RequestBody ClusterDTO cluster) {
     String operator = userInfoHolder.getUser().getUserId();
+    // 设置 ClusterDTO 的创建和修改人为当前管理员
     cluster.setDataChangeLastModifiedBy(operator);
     cluster.setDataChangeCreatedBy(operator);
-
+    // 设置 ClusterDTO 的创建和修改人为当前管理员
     return clusterService.createCluster(Env.valueOf(env), cluster);
   }
 
