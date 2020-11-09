@@ -41,15 +41,17 @@ public class ItemController {
   public ItemDTO create(@PathVariable("appId") String appId,
                         @PathVariable("clusterName") String clusterName,
                         @PathVariable("namespaceName") String namespaceName, @RequestBody ItemDTO dto) {
+    // 将 ItemDTO 转换成 Item 对象
     Item entity = BeanUtils.transform(Item.class, dto);
-
+    // 创建 ConfigChangeContentBuilder 对象
     ConfigChangeContentBuilder builder = new ConfigChangeContentBuilder();
+    // 校验对应的 Item 是否已经存在。若是，抛出 BadRequestException 异常。
     Item managedEntity = itemService.findOne(appId, clusterName, namespaceName, entity.getKey());
     if (managedEntity != null) {
       throw new BadRequestException("item already exists");
     } else {
       entity = itemService.save(entity);
-      builder.createItem(entity);
+      builder.createItem(entity);// 添加到 ConfigChangeContentBuilder 中
     }
     dto = BeanUtils.transform(ItemDTO.class, entity);
 

@@ -9,6 +9,9 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 
 import java.util.List;
 
+/**
+ * 提供 Commit 的数据访问 给 Admin Service 和 Config Service
+ */
 public interface CommitRepository extends PagingAndSortingRepository<Commit, Long> {
 
   List<Commit> findByAppIdAndClusterNameAndNamespaceNameOrderByIdDesc(String appId, String clusterName,

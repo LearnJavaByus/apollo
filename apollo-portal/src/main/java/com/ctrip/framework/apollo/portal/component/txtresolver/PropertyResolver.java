@@ -17,7 +17,7 @@ import java.util.Set;
 /**
  * normal property file resolver.
  * update comment and blank item implement by create new item and delete old item.
- * update normal key/value item implement by update.
+ * update normal key/value item implement by update. properties 配置解析器
  */
 @Component("propertyResolver")
 public class PropertyResolver implements ConfigTextResolver {
@@ -27,46 +27,49 @@ public class PropertyResolver implements ConfigTextResolver {
 
   @Override
   public ItemChangeSets resolve(long namespaceId, String configText, List<ItemDTO> baseItems) {
-
+    // 创建 Item Map ，以 lineNum 为 键
     Map<Integer, ItemDTO> oldLineNumMapItem = BeanUtils.mapByKey("lineNum", baseItems);
+    // 创建 Item Map ，以 key 为 键
     Map<String, ItemDTO> oldKeyMapItem = BeanUtils.mapByKey("key", baseItems);
 
     //remove comment and blank item map.
     oldKeyMapItem.remove("");
-
+    // 按照拆分 Property 配置
     String[] newItems = configText.split(ITEM_SEPARATOR);
-
+    // 校验是否存在重复配置 Key 。若是，抛出 BadRequestException 异常
     if (isHasRepeatKey(newItems)) {
       throw new BadRequestException("config text has repeat key please check.");
     }
-
+    // 创建 ItemChangeSets 对象，并解析配置文件到 ItemChangeSets 中。
     ItemChangeSets changeSets = new ItemChangeSets();
     Map<Integer, String> newLineNumMapItem = new HashMap<>();//use for delete blank and comment item
     int lineCounter = 1;
     for (String newItem : newItems) {
       newItem = newItem.trim();
       newLineNumMapItem.put(lineCounter, newItem);
+      // 使用行号，获得已存在的 ItemDTO
       ItemDTO oldItemByLine = oldLineNumMapItem.get(lineCounter);
 
-      //comment item
+      //comment item  // comment item 注释 Item
       if (isCommentItem(newItem)) {
 
         handleCommentLine(namespaceId, oldItemByLine, newItem, lineCounter, changeSets);
 
-        //blank item
+        //blank item 空白 Item
       } else if (isBlankItem(newItem)) {
 
         handleBlankLine(namespaceId, oldItemByLine, lineCounter, changeSets);
 
-        //normal item
+        //normal item 普通 Item
       } else {
         handleNormalLine(namespaceId, oldKeyMapItem, newItem, lineCounter, changeSets);
       }
 
-      lineCounter++;
+      lineCounter++; // 行号计数 + 1
     }
-
+    // 删除注释和空行配置项
     deleteCommentAndBlankItem(oldLineNumMapItem, newLineNumMapItem, changeSets);
+    // 删除普通配置项
     deleteNormalKVItem(oldKeyMapItem, changeSets);
 
     return changeSets;
@@ -74,10 +77,10 @@ public class PropertyResolver implements ConfigTextResolver {
 
   private boolean isHasRepeatKey(String[] newItems) {
     Set<String> keys = new HashSet<>();
-    int lineCounter = 1;
-    int keyCount = 0;
+    int lineCounter = 1;// 记录行数，用于报错提示，无业务逻辑需要。
+    int keyCount = 0;  // 计数
     for (String item : newItems) {
-      if (!isCommentItem(item) && !isBlankItem(item)) {
+      if (!isCommentItem(item) && !isBlankItem(item)) {  // 排除注释和空行的配置项
         keyCount++;
         String[] kv = parseKeyValueFromItem(item);
         if (kv != null) {
@@ -107,12 +110,14 @@ public class PropertyResolver implements ConfigTextResolver {
   private void handleCommentLine(Long namespaceId, ItemDTO oldItemByLine, String newItem, int lineCounter, ItemChangeSets changeSets) {
     String oldComment = oldItemByLine == null ? "" : oldItemByLine.getComment();
     //create comment. implement update comment by delete old comment and create new comment
+    // 创建注释 ItemDTO 到 ItemChangeSets 的新增项，若老的配置项不是注释或者不相等。另外，更新注释配置，通过删除 + 添加的方式。
     if (!(isCommentItem(oldItemByLine) && newItem.equals(oldComment))) {
       changeSets.addCreateItem(buildCommentItem(0l, namespaceId, newItem, lineCounter));
     }
   }
 
   private void handleBlankLine(Long namespaceId, ItemDTO oldItem, int lineCounter, ItemChangeSets changeSets) {
+    // 创建空行 ItemDTO 到 ItemChangeSets 的新增项，若老的不是空行。另外，更新空行配置，通过删除 + 添加的方式
     if (!isBlankItem(oldItem)) {
       changeSets.addCreateItem(buildBlankItem(0l, namespaceId, lineCounter));
     }
@@ -120,7 +125,7 @@ public class PropertyResolver implements ConfigTextResolver {
 
   private void handleNormalLine(Long namespaceId, Map<String, ItemDTO> keyMapOldItem, String newItem,
                                 int lineCounter, ItemChangeSets changeSets) {
-
+    // 解析一行，生成 [key, value]
     String[] kv = parseKeyValueFromItem(newItem);
 
     if (kv == null) {

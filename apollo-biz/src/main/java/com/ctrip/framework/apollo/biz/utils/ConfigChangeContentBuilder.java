@@ -11,13 +11,23 @@ import java.util.LinkedList;
 import java.util.List;
 import org.springframework.beans.BeanUtils;
 
-
+/**
+ * 配置变更内容构建器
+ */
 public class ConfigChangeContentBuilder {
 
   private static final Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-
+  /**
+   * 创建 Item 集合
+   */
   private List<Item> createItems = new LinkedList<>();
+  /**
+   * 更新 Item 集合
+   */
   private List<ItemPair> updateItems = new LinkedList<>();
+  /**
+   * 删除 Item 集合
+   */
   private List<Item> deleteItems = new LinkedList<>();
 
 
