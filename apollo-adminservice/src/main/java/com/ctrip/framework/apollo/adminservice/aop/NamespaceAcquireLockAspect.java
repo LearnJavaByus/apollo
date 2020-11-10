@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 
 
 /**
- * 一个namespace在一次发布中只能允许一个人修改配置
+ * 一个namespace在一次发布中只能允许一个人修改配置  获得 NamespaceLock 切面
  * 通过数据库lock表来实现
  */
 @Aspect
@@ -100,27 +100,31 @@ public class NamespaceAcquireLockAspect {
   }
 
   private void acquireLock(Namespace namespace, String currentUser) {
+    // 当 Namespace 为空时，抛出 BadRequestException 异常
     if (namespace == null) {
       throw new BadRequestException("namespace not exist.");
     }
 
     long namespaceId = namespace.getId();
-
+    // 获得 NamespaceLock 对象
     NamespaceLock namespaceLock = namespaceLockService.findLock(namespaceId);
+    // 当 NamespaceLock 不存在时，尝试锁定
     if (namespaceLock == null) {
       try {
+        // 锁定  -- 即保存记录
         tryLock(namespaceId, currentUser);
         //lock success
       } catch (DataIntegrityViolationException e) {
-        //lock fail
+        //lock fail  // 锁定失败，获得 NamespaceLock 对象
         namespaceLock = namespaceLockService.findLock(namespaceId);
+        // 校验锁定人是否是当前管理员
         checkLock(namespace, namespaceLock, currentUser);
       } catch (Exception e) {
         logger.error("try lock error", e);
         throw e;
       }
     } else {
-      //check lock owner is current user
+      //check lock owner is current user  // 校验锁定人是否是当前管理员
       checkLock(namespace, namespaceLock, currentUser);
     }
   }
@@ -141,7 +145,7 @@ public class NamespaceAcquireLockAspect {
     }
 
     String lockOwner = namespaceLock.getDataChangeCreatedBy();
-    if (!lockOwner.equals(currentUser)) {
+    if (!lockOwner.equals(currentUser)) {// 校验锁定人是否是当前管理员。若不是，抛出 BadRequestException 异常
       throw new BadRequestException(
           "namespace:" + namespace.getNamespaceName() + " is modified by " + lockOwner);
     }

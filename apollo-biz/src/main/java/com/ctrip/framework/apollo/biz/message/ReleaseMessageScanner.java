@@ -20,7 +20,7 @@ import com.ctrip.framework.apollo.tracer.spi.Transaction;
 import com.google.common.collect.Lists;
 
 /**
- * @author Jason Song(song_s@ctrip.com)
+ * @author Jason Song(song_s@ctrip.com) ReleaseMessage 扫描器，被 Config Service 使用
  */
 public class ReleaseMessageScanner implements InitializingBean {
   private static final Logger logger = LoggerFactory.getLogger(ReleaseMessageScanner.class);
@@ -28,25 +28,42 @@ public class ReleaseMessageScanner implements InitializingBean {
   private BizConfig bizConfig;
   @Autowired
   private ReleaseMessageRepository releaseMessageRepository;
+  /**
+   * 从 DB 中扫描 ReleaseMessage 表的频率，单位：毫秒
+   */
   private int databaseScanInterval;
+  /**
+   * 监听器数组
+   */
   private List<ReleaseMessageListener> listeners;
+  /**
+   * 定时任务服务
+   */
   private ScheduledExecutorService executorService;
+  /**
+   * 最后扫描到的 ReleaseMessage 的编号
+   */
   private long maxIdScanned;
 
   public ReleaseMessageScanner() {
+    // 创建监听器数组
     listeners = Lists.newCopyOnWriteArrayList();
+    // 创建 ScheduledExecutorService 对象
     executorService = Executors.newScheduledThreadPool(1, ApolloThreadFactory
         .create("ReleaseMessageScanner", true));
   }
 
   @Override
   public void afterPropertiesSet() throws Exception {
+    // 从 ServerConfig 中获得频率
     databaseScanInterval = bizConfig.releaseMessageScanIntervalInMilli();
+    // 获得最大的 ReleaseMessage 的编号
     maxIdScanned = loadLargestMessageId();
+    // 创建从 DB 中扫描 ReleaseMessage 表的定时任务
     executorService.scheduleWithFixedDelay((Runnable) () -> {
       Transaction transaction = Tracer.newTransaction("Apollo.ReleaseMessageScanner", "scanMessage");
       try {
-        scanMessages();
+        scanMessages(); // 从 DB 中，扫描 ReleaseMessage 们
         transaction.setStatus(Transaction.SUCCESS);
       } catch (Throwable ex) {
         transaction.setStatus(ex);
@@ -110,9 +127,10 @@ public class ReleaseMessageScanner implements InitializingBean {
    * @param messages
    */
   private void fireMessageScanned(List<ReleaseMessage> messages) {
-    for (ReleaseMessage message : messages) {
-      for (ReleaseMessageListener listener : listeners) {
+    for (ReleaseMessage message : messages) {// 循环 ReleaseMessage
+      for (ReleaseMessageListener listener : listeners) {// 循环 ReleaseMessageListener
         try {
+          // 触发监听器
           listener.handleMessage(message, Topics.APOLLO_RELEASE_TOPIC);
         } catch (Throwable ex) {
           Tracer.logError(ex);
