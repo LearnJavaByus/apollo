@@ -53,6 +53,12 @@ import java.util.function.Function;
 @RequestMapping("/notifications/v2")
 public class NotificationControllerV2 implements ReleaseMessageListener {
   private static final Logger logger = LoggerFactory.getLogger(NotificationControllerV2.class);
+  /**
+   * Watch Key 与 DeferredResultWrapper 的 Multimap
+   *
+   * Key：Watch Key
+   * Value：DeferredResultWrapper 数组
+   */
   private final Multimap<String, DeferredResultWrapper> deferredResults =
       Multimaps.synchronizedSetMultimap(HashMultimap.create());
   private static final Splitter STRING_SPLITTER =
@@ -60,7 +66,9 @@ public class NotificationControllerV2 implements ReleaseMessageListener {
   private static final Type notificationsTypeReference =
       new TypeToken<List<ApolloConfigNotification>>() {
       }.getType();
-
+  /**
+   * 大量通知分批执行 ExecutorService
+   */
   private final ExecutorService largeNotificationBatchExecutorService;
 
   private final WatchKeysUtil watchKeysUtil;
@@ -95,6 +103,7 @@ public class NotificationControllerV2 implements ReleaseMessageListener {
       @RequestParam(value = "notifications") String notificationsAsString,
       @RequestParam(value = "dataCenter", required = false) String dataCenter,
       @RequestParam(value = "ip", required = false) String clientIp) {
+    // 解析 notificationsAsString 参数，创建 ApolloConfigNotification 数组。
     List<ApolloConfigNotification> notifications = null;
 
     try {
@@ -107,17 +116,23 @@ public class NotificationControllerV2 implements ReleaseMessageListener {
     if (CollectionUtils.isEmpty(notifications)) {
       throw new BadRequestException("Invalid format of notifications: " + notificationsAsString);
     }
-
+    // 创建 DeferredResultWrapper 对象
     DeferredResultWrapper deferredResultWrapper = new DeferredResultWrapper(bizConfig.longPollingTimeoutInMilli());
+    // Namespace 集合
     Set<String> namespaces = Sets.newHashSet();
+    // 客户端的通知 Map 。key 为 Namespace 名，value 为通知编号。
     Map<String, Long> clientSideNotifications = Maps.newHashMap();
+    // 过滤并创建 ApolloConfigNotification Map
     Map<String, ApolloConfigNotification> filteredNotifications = filterNotifications(appId, notifications);
-
+    // 循环 ApolloConfigNotification Map ，初始化上述变量。
     for (Map.Entry<String, ApolloConfigNotification> notificationEntry : filteredNotifications.entrySet()) {
       String normalizedNamespace = notificationEntry.getKey();
       ApolloConfigNotification notification = notificationEntry.getValue();
+      // 添加到 `namespaces` 中。
       namespaces.add(normalizedNamespace);
+      // 添加到 `clientSideNotifications` 中。
       clientSideNotifications.put(normalizedNamespace, notification.getNotificationId());
+      // 记录名字被归一化的 Namespace 。因为，最终返回给客户端，使用原始的 Namespace 名字，否则客户端无法识别。
       if (!Objects.equals(notification.getNamespaceName(), normalizedNamespace)) {
         deferredResultWrapper.recordNamespaceNameNormalizedResult(notification.getNamespaceName(), normalizedNamespace);
       }
@@ -126,10 +141,10 @@ public class NotificationControllerV2 implements ReleaseMessageListener {
     if (CollectionUtils.isEmpty(namespaces)) {
       throw new BadRequestException("Invalid format of notifications: " + notificationsAsString);
     }
-
+    // 组装 Watch Key Multimap
     Multimap<String, String> watchedKeysMap =
         watchKeysUtil.assembleAllWatchKeys(appId, cluster, namespaces, dataCenter);
-
+    // 生成 Watch Key 集合
     Set<String> watchedKeys = Sets.newHashSet(watchedKeysMap.values());
 
     /**
@@ -158,7 +173,7 @@ public class NotificationControllerV2 implements ReleaseMessageListener {
         watchedKeys, appId, cluster, namespaces, dataCenter);
 
     /**
-     * 2、check new release
+     * 2、check new release // 获得 Watch Key 集合中，每个 Watch Key 对应的 ReleaseMessage 记录。
      */
     List<ReleaseMessage> latestReleaseMessages =
         releaseMessageService.findLatestReleaseMessagesGroupByMessages(watchedKeys);
@@ -168,13 +183,18 @@ public class NotificationControllerV2 implements ReleaseMessageListener {
      * Since for async request, Spring won't do so until the request is finished,
      * which is unacceptable since we are doing long polling - means the db connection would be hold
      * for a very long time
+     *
+     * // 手动关闭 EntityManager
+     *  // 因为对于 async 请求，Spring 在请求完成之前不会这样做
+     * // 这是不可接受的，因为我们正在做长轮询——意味着 db 连接将被保留很长时间。
+     * // 实际上，下面的过程，我们已经不需要 db 连接，因此进行关闭。
      */
     entityManagerUtil.closeEntityManager();
-
+    // 获得新的 ApolloConfigNotification 通知数组
     List<ApolloConfigNotification> newNotifications =
         getApolloConfigNotifications(namespaces, clientSideNotifications, watchedKeysMap,
             latestReleaseMessages);
-
+    // 若有新的通知，直接设置结果
     if (!CollectionUtils.isEmpty(newNotifications)) {
       deferredResultWrapper.setResult(newNotifications);
     }
