@@ -4,8 +4,19 @@ package com.ctrip.framework.apollo.core.dto;
  * @author Jason Song(song_s@ctrip.com)
  */
 public class ApolloConfigNotification {
+  /**
+   * Namespace 名字
+   */
   private String namespaceName;
+  /**
+   * 最新通知编号
+   *
+   * 目前使用 `ReleaseMessage.id` 。
+   */
   private long notificationId;
+  /**
+   * 通知消息集合
+   */
   private volatile ApolloNotificationMessages messages;
 
   //for json converter
@@ -38,7 +49,7 @@ public class ApolloConfigNotification {
   }
 
   public void addMessage(String key, long notificationId) {
-    if (this.messages == null) {
+    if (this.messages == null) {// 创建 ApolloNotificationMessages 对象
       synchronized (this) {
         if (this.messages == null) {
           this.messages = new ApolloNotificationMessages();

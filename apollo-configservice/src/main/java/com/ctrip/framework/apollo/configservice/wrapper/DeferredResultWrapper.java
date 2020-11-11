@@ -13,13 +13,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author Jason Song(song_s@ctrip.com)
+ * @author Jason Song(song_s@ctrip.com) DeferredResult 包装器，封装 DeferredResult 的公用方法
  */
 public class DeferredResultWrapper {
+  /**
+   * 未修改时的 ResponseEntity 响应，使用 302 状态码。
+   */
   private static final ResponseEntity<List<ApolloConfigNotification>>
       NOT_MODIFIED_RESPONSE_LIST = new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
-
+  /**
+   * 归一化和原始的 Namespace 的名字的 Map
+   */
   private Map<String, String> normalizedNamespaceNameToOriginalNamespaceName;
+  /**
+   * 响应的 DeferredResult 对象
+   */
   private DeferredResult<ResponseEntity<List<ApolloConfigNotification>>> result;
 
 
@@ -31,6 +39,7 @@ public class DeferredResultWrapper {
     if (normalizedNamespaceNameToOriginalNamespaceName == null) {
       normalizedNamespaceNameToOriginalNamespaceName = Maps.newHashMap();
     }
+    // 添加到 `normalizedNamespaceNameToOriginalNamespaceName` 中
     normalizedNamespaceNameToOriginalNamespaceName.put(normalizedNamespaceName, originalNamespaceName);
   }
 
@@ -52,12 +61,13 @@ public class DeferredResultWrapper {
    * The namespace name is used as a key in client side, so we have to return the original one instead of the correct one
    */
   public void setResult(List<ApolloConfigNotification> notifications) {
+    // 恢复被归一化的 Namespace 的名字为原始的 Namespace 的名字
     if (normalizedNamespaceNameToOriginalNamespaceName != null) {
       notifications.stream().filter(notification -> normalizedNamespaceNameToOriginalNamespaceName.containsKey
           (notification.getNamespaceName())).forEach(notification -> notification.setNamespaceName(
               normalizedNamespaceNameToOriginalNamespaceName.get(notification.getNamespaceName())));
     }
-
+    // 设置结果，并使用 200 状态码。
     result.setResult(new ResponseEntity<>(notifications, HttpStatus.OK));
   }
 

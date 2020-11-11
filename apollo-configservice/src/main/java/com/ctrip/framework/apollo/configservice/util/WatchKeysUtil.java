@@ -43,18 +43,30 @@ public class WatchKeysUtil {
    *
    * @return a multimap with namespace as the key and watch keys as the value
    */
+  /**
+   * 组装所有的 Watch Key Multimap 。其中 Key 为 Namespace 的名字，Value 为 Watch Key 集合。
+    *
+    * @param appId App 编号
+   * @param clusterName Cluster 名
+    * @param namespaces Namespace 的名字的数组
+    * @param dataCenter IDC 的 Cluster 名
+   * @return Watch Key Multimap
+   */
   public Multimap<String, String> assembleAllWatchKeys(String appId, String clusterName,
                                                        Set<String> namespaces,
                                                        String dataCenter) {
+    // 组装 Watch Key Multimap
     Multimap<String, String> watchedKeysMap =
         assembleWatchKeys(appId, clusterName, namespaces, dataCenter);
 
-    //Every app has an 'application' namespace
+    //Every app has an 'application' namespace // 如果不是仅监听 'application' Namespace ，处理其关联来的 Namespace 。
     if (!(namespaces.size() == 1 && namespaces.contains(ConfigConsts.NAMESPACE_APPLICATION))) {
+      // 获得属于该 App 的 Namespace 的名字的集合
       Set<String> namespacesBelongToAppId = namespacesBelongToAppId(appId, namespaces);
+      // 获得关联来的 Namespace 的名字的集合
       Set<String> publicNamespaces = Sets.difference(namespaces, namespacesBelongToAppId);
 
-      //Listen on more namespaces if it's a public namespace
+      //Listen on more namespaces if it's a public namespace // 添加到 Watch Key Multimap 中
       if (!publicNamespaces.isEmpty()) {
         watchedKeysMap
             .putAll(findPublicConfigWatchKeys(appId, clusterName, publicNamespaces, dataCenter));
@@ -63,29 +75,47 @@ public class WatchKeysUtil {
 
     return watchedKeysMap;
   }
-
+  /**
+   * 获得 Namespace 类型为 public 对应的 Watch Key Multimap
+   *
+   * 重要：要求非当前 App 的 Namespace
+   *
+   * @param applicationId App 编号
+   * @param clusterName Cluster 名
+   * @param namespaces Namespace 的名字的集合
+   * @param dataCenter  IDC 的 Cluster 名
+   * @return Watch Key Map
+   */
   private Multimap<String, String> findPublicConfigWatchKeys(String applicationId,
                                                              String clusterName,
                                                              Set<String> namespaces,
                                                              String dataCenter) {
     Multimap<String, String> watchedKeysMap = HashMultimap.create();
+    // 获得 Namespace 为 public 的 AppNamespace 数组
     List<AppNamespace> appNamespaces = appNamespaceService.findPublicNamespacesByNames(namespaces);
-
+    // 组装 Watch Key Map
     for (AppNamespace appNamespace : appNamespaces) {
-      //check whether the namespace's appId equals to current one
+      //check whether the namespace's appId equals to current one // 排除非关联类型的 Namespace
       if (Objects.equals(applicationId, appNamespace.getAppId())) {
         continue;
       }
 
       String publicConfigAppId = appNamespace.getAppId();
-
+      // 组装指定 Namespace 的 Watch Key 数组
       watchedKeysMap.putAll(appNamespace.getName(),
           assembleWatchKeys(publicConfigAppId, clusterName, appNamespace.getName(), dataCenter));
     }
 
     return watchedKeysMap;
   }
-
+  /**
+   * 拼接 Watch Key
+   *
+   * @param appId App 编号
+   * @param cluster Cluster 名
+   * @param namespace Namespace 名
+   * @return Watch Key
+   */
   private String assembleKey(String appId, String cluster, String namespace) {
     return STRING_JOINER.join(appId, cluster, namespace);
   }
@@ -97,46 +127,61 @@ public class WatchKeysUtil {
     }
     Set<String> watchedKeys = Sets.newHashSet();
 
-    //watch specified cluster config change
+    //watch specified cluster config change // 指定 Cluster
     if (!Objects.equals(ConfigConsts.CLUSTER_NAME_DEFAULT, clusterName)) {
       watchedKeys.add(assembleKey(appId, clusterName, namespace));
     }
 
-    //watch data center config change
+    //watch data center config change // 所属 IDC 的 Cluster
     if (!Strings.isNullOrEmpty(dataCenter) && !Objects.equals(dataCenter, clusterName)) {
       watchedKeys.add(assembleKey(appId, dataCenter, namespace));
     }
 
-    //watch default cluster config change
+    //watch default cluster config change // 默认 Cluster
     watchedKeys.add(assembleKey(appId, ConfigConsts.CLUSTER_NAME_DEFAULT, namespace));
 
     return watchedKeys;
   }
-
+  /**
+   * 组装 Watch Key Multimap
+   *
+   * @param appId App 编号
+   * @param clusterName Cluster 名
+   * @param namespaces Namespace 的名字的集合
+   * @param dataCenter IDC 的 Cluster 名字
+   * @return Watch Key Multimap
+   */
   private Multimap<String, String> assembleWatchKeys(String appId, String clusterName,
                                                      Set<String> namespaces,
                                                      String dataCenter) {
     Multimap<String, String> watchedKeysMap = HashMultimap.create();
 
-    for (String namespace : namespaces) {
+    for (String namespace : namespaces) {// 循环 Namespace 的名字的集合
       watchedKeysMap
           .putAll(namespace, assembleWatchKeys(appId, clusterName, namespace, dataCenter));
     }
 
     return watchedKeysMap;
   }
-
+  /**
+   * 获得属于该 App 的 Namespace 的名字的集合
+   *
+   * @param appId App 编号
+   * @param namespaces Namespace 名
+   * @return 集合
+   */
   private Set<String> namespacesBelongToAppId(String appId, Set<String> namespaces) {
     if (ConfigConsts.NO_APPID_PLACEHOLDER.equalsIgnoreCase(appId)) {
       return Collections.emptySet();
     }
+    // 获得属于该 App 的 AppNamespace 集合
     List<AppNamespace> appNamespaces =
         appNamespaceService.findByAppIdAndNamespaces(appId, namespaces);
 
     if (appNamespaces == null || appNamespaces.isEmpty()) {
       return Collections.emptySet();
     }
-
+    // 返回 AppNamespace 的名字的集合
     return appNamespaces.stream().map(AppNamespace::getName).collect(Collectors.toSet());
   }
 }
