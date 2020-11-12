@@ -15,36 +15,58 @@ import javax.persistence.Table;
 
 /**
  * @author Jason Song(song_s@ctrip.com)
+ *
+ * Instance Config 实体，记录 Instance 对 Namespace 的配置的获取情况。
+ * 如果一个 Instance 使用了多个 Namespace ，则会记录多条 InstanceConfig 。
  */
 @Entity
 @Table(name = "InstanceConfig")
 public class InstanceConfig {
+  /**
+   * 编号
+   */
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "Id")
   private long id;
-
+  /**
+   * Instance 编号，指向 {@link Instance#id}
+   */
   @Column(name = "InstanceId")
   private long instanceId;
-
+  /**
+   * App 编号
+   */
   @Column(name = "ConfigAppId", nullable = false)
   private String configAppId;
-
+  /**
+   * Cluster 名字
+   */
   @Column(name = "ConfigClusterName", nullable = false)
   private String configClusterName;
-
+  /**
+   * Namespace 名字
+   */
   @Column(name = "ConfigNamespaceName", nullable = false)
   private String configNamespaceName;
-
+  /**
+   * Release Key ，对应 {@link Release#releaseKey}
+   */
   @Column(name = "ReleaseKey", nullable = false)
   private String releaseKey;
-
+  /**
+   * 配置下发时间
+   */
   @Column(name = "ReleaseDeliveryTime", nullable = false)
   private Date releaseDeliveryTime;
-
+  /**
+   * 数据创建时间
+   */
   @Column(name = "DataChange_CreatedTime", nullable = false)
   private Date dataChangeCreatedTime;
-
+  /**
+   * 数据最后更新时间
+   */
   @Column(name = "DataChange_LastTime")
   private Date dataChangeLastModifiedTime;
 
