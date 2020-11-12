@@ -10,14 +10,14 @@ import com.ctrip.framework.apollo.core.dto.ApolloNotificationMessages;
 public interface ConfigService extends ReleaseMessageListener {
 
   /**
-   * Load config
+   * Load config  读取指定 Namespace 的最新的 Release 对象
    *
    * @param clientAppId the client's app id
    * @param clientIp the client ip
    * @param configAppId the requested config's app id
-   * @param configClusterName the requested config's cluster name
+   * @param configClusterName the requested config's cluster name  Cluster 的名字
    * @param configNamespace the requested config's namespace name
-   * @param dataCenter the client data center
+   * @param dataCenter the client data center 数据中心的 Cluster 的名字
    * @param clientMessages the messages received in client side
    * @return the Release
    */
