@@ -45,11 +45,11 @@ public class NamespaceBranchController {
                                    @PathVariable String clusterName,
                                    @PathVariable String namespaceName,
                                    @RequestParam("operator") String operator) {
-
+    // 校验 Namespace 是否存在
     checkNamespace(appId, clusterName, namespaceName);
-
+    // 创建子 Namespace
     Namespace createdBranch = namespaceBranchService.createBranch(appId, clusterName, namespaceName, operator);
-
+    // 将 Namespace 转换成 NamespaceDTO 对象
     return BeanUtils.transform(NamespaceDTO.class, createdBranch);
   }
 
@@ -139,7 +139,9 @@ public class NamespaceBranchController {
   }
 
   private void checkNamespace(String appId, String clusterName, String namespaceName) {
+    // 查询父 Namespace 对象
     Namespace parentNamespace = namespaceService.findOne(appId, clusterName, namespaceName);
+    // 若父 Namespace 不存在，抛出 BadRequestException 异常
     if (parentNamespace == null) {
       throw new BadRequestException(String.format("Namespace not exist. AppId = %s, ClusterName = %s, NamespaceName = %s", appId,
                                                   clusterName, namespaceName));

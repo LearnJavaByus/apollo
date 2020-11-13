@@ -46,24 +46,28 @@ public class NamespaceBranchService {
 
   @Transactional
   public Namespace createBranch(String appId, String parentClusterName, String namespaceName, String operator){
+    // 获得子 Namespace 对象
     Namespace childNamespace = findBranch(appId, parentClusterName, namespaceName);
+    // 若存在子 Namespace 对象，则抛出 BadRequestException 异常。一个 Namespace 有且仅允许有一个子 Namespace 。
     if (childNamespace != null){
       throw new BadRequestException("namespace already has branch");
     }
-
+    // 获得父 Cluster 对象
     Cluster parentCluster = clusterService.findOne(appId, parentClusterName);
+    // 若父 Cluster 对象不存在，抛出 BadRequestException 异常
     if (parentCluster == null || parentCluster.getParentClusterId() != 0) {
       throw new BadRequestException("cluster not exist or illegal cluster");
     }
 
-    //create child cluster
+    //create child cluster // 创建子 Cluster 对象
     Cluster childCluster = createChildCluster(appId, parentCluster, namespaceName, operator);
-
+    // 保存子 Cluster 对象
     Cluster createdChildCluster = clusterService.saveWithoutInstanceOfAppNamespaces(childCluster);
 
-    //create child namespace
+    //create child namespace // 创建子 Namespace 对象
     childNamespace = createNamespaceBranch(appId, createdChildCluster.getName(),
                                                         namespaceName, operator);
+    // 保存子 Namespace 对象
     return namespaceService.save(childNamespace);
   }
 
