@@ -19,6 +19,8 @@ import java.util.Objects;
 
 /**
  * @author Jason Song(song_s@ctrip.com)
+ *
+ * 实现 RefreshablePropertySource 抽象类，基于 ConfigDB 的 ServerConfig 的 PropertySource 实现类
  */
 @Component
 public class BizDBPropertySource extends RefreshablePropertySource {
@@ -42,17 +44,18 @@ public class BizDBPropertySource extends RefreshablePropertySource {
 
   @Override
   protected void refresh() {
+    // 获得所有的 ServerConfig 记录
     Iterable<ServerConfig> dbConfigs = serverConfigRepository.findAll();
-
+    // 创建配置 Map ，将匹配的 Cluster 的 ServerConfig 添加到其中
     Map<String, Object> newConfigs = Maps.newHashMap();
-    //default cluster's configs
+    //default cluster's configs  // 匹配默认的 Cluster
     for (ServerConfig config : dbConfigs) {
       if (Objects.equals(ConfigConsts.CLUSTER_NAME_DEFAULT, config.getCluster())) {
         newConfigs.put(config.getKey(), config.getValue());
       }
     }
 
-    //data center's configs
+    //data center's configs // 匹配数据中心的 Cluster
     String dataCenter = getCurrentDataCenter();
     for (ServerConfig config : dbConfigs) {
       if (Objects.equals(dataCenter, config.getCluster())) {
@@ -60,7 +63,7 @@ public class BizDBPropertySource extends RefreshablePropertySource {
       }
     }
 
-    //cluster's config
+    //cluster's config // 匹配 JVM 启动参数的 Cluster
     if (!Strings.isNullOrEmpty(System.getProperty(ConfigConsts.APOLLO_CLUSTER_KEY))) {
       String cluster = System.getProperty(ConfigConsts.APOLLO_CLUSTER_KEY);
       for (ServerConfig config : dbConfigs) {
@@ -70,7 +73,7 @@ public class BizDBPropertySource extends RefreshablePropertySource {
       }
     }
 
-    //put to environment
+    //put to environment // 缓存，更新到属性源
     for (Map.Entry<String, Object> config: newConfigs.entrySet()){
       String key = config.getKey();
       Object value = config.getValue();
@@ -81,7 +84,7 @@ public class BizDBPropertySource extends RefreshablePropertySource {
         logger.info("Load config from DB : {} = {}. Old value = {}", key,
                     value, this.source.get(key));
       }
-
+      // 更新到属性源
       this.source.put(key, value);
 
     }

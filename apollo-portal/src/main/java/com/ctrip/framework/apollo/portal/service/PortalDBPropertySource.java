@@ -17,6 +17,7 @@ import java.util.Objects;
 
 /**
  * @author Jason Song(song_s@ctrip.com)
+ * 实现 RefreshablePropertySource 抽象类，基于 PortalDB 的 ServerConfig 的 PropertySource 实现类。
  */
 @Component
 public class PortalDBPropertySource extends RefreshablePropertySource {
@@ -35,8 +36,9 @@ public class PortalDBPropertySource extends RefreshablePropertySource {
 
   @Override
   protected void refresh() {
+    // 获得所有的 ServerConfig 记录
     Iterable<ServerConfig> dbConfigs = serverConfigRepository.findAll();
-
+    // 缓存，更新到属性源
     for (ServerConfig config: dbConfigs) {
       String key = config.getKey();
       Object value = config.getValue();
@@ -47,7 +49,7 @@ public class PortalDBPropertySource extends RefreshablePropertySource {
         logger.info("Load config from DB : {} = {}. Old value = {}", key,
                     value, this.source.get(key));
       }
-
+      // 更新到属性源
       this.source.put(key, value);
     }
   }

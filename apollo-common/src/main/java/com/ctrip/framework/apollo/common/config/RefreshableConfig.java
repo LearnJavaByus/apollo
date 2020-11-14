@@ -19,20 +19,24 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
-
+//可刷新的配置抽象类。
 public abstract class RefreshableConfig {
 
   private static final Logger logger = LoggerFactory.getLogger(RefreshableConfig.class);
 
   private static final String LIST_SEPARATOR = ",";
-  //TimeUnit: second
+  //TimeUnit: second RefreshablePropertySource 刷新频率，单位：秒
   private static final int CONFIG_REFRESH_INTERVAL = 60;
 
   protected Splitter splitter = Splitter.on(LIST_SEPARATOR).omitEmptyStrings().trimResults();
-
+  /**
+   * Spring ConfigurableEnvironment 对象
+   */
   @Autowired
   private ConfigurableEnvironment environment;
-
+  /**
+   * RefreshablePropertySource 数组，通过 {@link #getRefreshablePropertySources} 获得
+   */
   private List<RefreshablePropertySource> propertySources;
 
   /**
@@ -43,7 +47,7 @@ public abstract class RefreshableConfig {
 
   @PostConstruct
   public void setup() {
-
+    // 获得 RefreshablePropertySource 数组
     propertySources = getRefreshablePropertySources();
     if (CollectionUtils.isEmpty(propertySources)) {
       throw new IllegalStateException("Property sources can not be empty.");
@@ -55,11 +59,11 @@ public abstract class RefreshableConfig {
       environment.getPropertySources().addLast(propertySource);
     }
 
-    //task to update configs
+    //task to update configs  创建 ScheduledExecutorService 对象
     ScheduledExecutorService
         executorService =
         Executors.newScheduledThreadPool(1, ApolloThreadFactory.create("ConfigRefresher", true));
-
+    // 提交定时任务，每分钟刷新一次 RefreshablePropertySource 数组
     executorService
         .scheduleWithFixedDelay(() -> {
           try {
