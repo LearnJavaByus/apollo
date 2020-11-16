@@ -18,7 +18,7 @@ import java.lang.annotation.Target;
  * private SomeObject someObject;
  * </pre>
  *
- * Create by zhangzheng on 2018/3/6
+ * Create by zhangzheng on 2018/3/6  将 Apollo 的一个 JSON 格式的属性进行注入
  *
  * @see org.springframework.beans.factory.annotation.Value
  */

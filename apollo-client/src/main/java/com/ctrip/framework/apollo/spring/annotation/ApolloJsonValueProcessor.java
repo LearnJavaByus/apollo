@@ -23,6 +23,11 @@ import org.springframework.util.ReflectionUtils;
 
 /**
  * Create by zhangzheng on 2018/2/6
+ *
+ * 实现 BeanFactoryAware 接口，继承 ApolloProcessor 抽象类，@ApolloJsonValue 注解处理器，有两个作用：
+ *
+ * 注入 @ApolloJsonValue 注解的属性或方法，对应的值。
+ * 自动更新 Spring Placeholder Values 。
  */
 public class ApolloJsonValueProcessor extends ApolloProcessor implements BeanFactoryAware {
 
@@ -46,23 +51,27 @@ public class ApolloJsonValueProcessor extends ApolloProcessor implements BeanFac
     if (apolloJsonValue == null) {
       return;
     }
+    // 获得 Placeholder 表达式
     String placeholder = apolloJsonValue.value();
+    // 解析对应的值
     Object propertyValue = placeholderHelper
         .resolvePropertyValue(beanFactory, beanName, placeholder);
 
-    // propertyValue will never be null, as @ApolloJsonValue will not allow that
+    // propertyValue will never be null, as @ApolloJsonValue will not allow that  // 忽略，非 String 值
     if (!(propertyValue instanceof String)) {
       return;
     }
-
+    // 设置到 Field 中
     boolean accessible = field.isAccessible();
     field.setAccessible(true);
     ReflectionUtils
         .setField(field, bean, parseJsonValue((String)propertyValue, field.getGenericType()));
     field.setAccessible(accessible);
-
+    // 是否开启自动更新机制
     if (configUtil.isAutoUpdateInjectedSpringPropertiesEnabled()) {
+      // 提取 `keys` 属性们。
       Set<String> keys = placeholderHelper.extractPlaceholderKeys(placeholder);
+      // 循环 `keys` ，创建对应的 SpringValue 对象，并添加到 `springValueRegistry` 中。
       for (String key : keys) {
         SpringValue springValue = new SpringValue(key, placeholder, bean, beanName, field, true);
         springValueRegistry.register(beanFactory, key, springValue);
@@ -77,11 +86,12 @@ public class ApolloJsonValueProcessor extends ApolloProcessor implements BeanFac
     if (apolloJsonValue == null) {
       return;
     }
+    // 获得 Placeholder 表达式
     String placeHolder = apolloJsonValue.value();
-
+    // 解析对应的值
     Object propertyValue = placeholderHelper
         .resolvePropertyValue(beanFactory, beanName, placeHolder);
-
+    // 忽略，非 String 值
     // propertyValue will never be null, as @ApolloJsonValue will not allow that
     if (!(propertyValue instanceof String)) {
       return;
@@ -91,15 +101,18 @@ public class ApolloJsonValueProcessor extends ApolloProcessor implements BeanFac
     Preconditions.checkArgument(types.length == 1,
         "Ignore @Value setter {}.{}, expecting 1 parameter, actual {} parameters",
         bean.getClass().getName(), method.getName(), method.getParameterTypes().length);
-
+    // 调用 Method ，设置值
     boolean accessible = method.isAccessible();
     method.setAccessible(true);
     ReflectionUtils.invokeMethod(method, bean, parseJsonValue((String)propertyValue, types[0]));
     method.setAccessible(accessible);
-
+    // 是否开启自动更新机制
     if (configUtil.isAutoUpdateInjectedSpringPropertiesEnabled()) {
+      // 提取 `keys` 属性们。
       Set<String> keys = placeholderHelper.extractPlaceholderKeys(placeHolder);
+      // 循环 `keys` ，创建对应的 SpringValue 对象，并添加到 `springValueRegistry` 中。
       for (String key : keys) {
+
         SpringValue springValue = new SpringValue(key, apolloJsonValue.value(), bean, beanName,
             method, true);
         springValueRegistry.register(beanFactory, key, springValue);

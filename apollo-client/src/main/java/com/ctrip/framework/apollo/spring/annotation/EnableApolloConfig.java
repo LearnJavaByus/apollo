@@ -32,13 +32,15 @@ import com.ctrip.framework.apollo.core.ConfigConsts;
 public @interface EnableApolloConfig {
   /**
    * Apollo namespaces to inject configuration into Spring Property Sources.
+   *
+   * @return Namespace 名字的集合
    */
   String[] value() default {ConfigConsts.NAMESPACE_APPLICATION};
 
   /**
    * The order of the apollo config, default is {@link Ordered#LOWEST_PRECEDENCE}, which is Integer.MAX_VALUE.
    * If there are properties with the same name in different apollo configs, the apollo config with smaller order wins.
-   * @return
+   * @return 优先级
    */
   int order() default Ordered.LOWEST_PRECEDENCE;
 }

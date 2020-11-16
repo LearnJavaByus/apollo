@@ -30,10 +30,10 @@ public class ApolloAnnotationProcessor extends ApolloProcessor {
 
     Preconditions.checkArgument(Config.class.isAssignableFrom(field.getType()),
         "Invalid type: %s for field: %s, should be Config", field.getType(), field);
-
+    // 创建 Config 对象
     String namespace = annotation.value();
     Config config = ConfigService.getConfig(namespace);
-
+    // 设置 Config 对象，到对应的 Field
     ReflectionUtils.makeAccessible(field);
     ReflectionUtils.setField(field, bean, config);
   }
@@ -52,7 +52,7 @@ public class ApolloAnnotationProcessor extends ApolloProcessor {
     Preconditions.checkArgument(ConfigChangeEvent.class.isAssignableFrom(parameterTypes[0]),
         "Invalid parameter type: %s for method: %s, should be ConfigChangeEvent", parameterTypes[0],
         method);
-
+    // 创建 ConfigChangeListener 监听器。该监听器会调用被注解的方法。
     ReflectionUtils.makeAccessible(method);
     String[] namespaces = annotation.value();
     String[] annotatedInterestedKeys = annotation.interestedKeys();
@@ -69,7 +69,7 @@ public class ApolloAnnotationProcessor extends ApolloProcessor {
 
     for (String namespace : namespaces) {
       Config config = ConfigService.getConfig(namespace);
-
+      // 向指定 Namespace 的 Config 对象们，注册该监听器
       if (interestedKeys == null && interestedKeyPrefixes == null) {
         config.addChangeListener(configChangeListener);
       } else {
