@@ -41,12 +41,22 @@ import org.springframework.core.env.PropertySource;
  * @author Jason Song(song_s@ctrip.com)
  */
 public class PropertySourcesProcessor implements BeanFactoryPostProcessor, EnvironmentAware, PriorityOrdered {
+  /**
+   * Namespace 名字集合
+   *
+   * KEY：优先级
+   * VALUE：Namespace 名字集合
+   */
   private static final Multimap<Integer, String> NAMESPACE_NAMES = LinkedHashMultimap.create();
+
   private static final Set<BeanFactory> AUTO_UPDATE_INITIALIZED_BEAN_FACTORIES = Sets.newConcurrentHashSet();
 
   private final ConfigPropertySourceFactory configPropertySourceFactory = SpringInjector
       .getInstance(ConfigPropertySourceFactory.class);
   private final ConfigUtil configUtil = ApolloInjector.getInstance(ConfigUtil.class);
+  /**
+   * Spring ConfigurableEnvironment 对象
+   */
   private ConfigurableEnvironment environment;
 
   public static boolean addNamespaces(Collection<String> namespaces, int order) {
@@ -60,28 +70,32 @@ public class PropertySourcesProcessor implements BeanFactoryPostProcessor, Envir
   }
 
   private void initializePropertySources() {
+    // 若 `environment` 已经有 APOLLO_PROPERTY_SOURCE_NAME 属性源，说明已经初始化，直接返回。
     if (environment.getPropertySources().contains(PropertySourcesConstants.APOLLO_PROPERTY_SOURCE_NAME)) {
       //already initialized
       return;
     }
+    // 创建 CompositePropertySource 对象，组合多个 Namespace 的 ConfigPropertySource 。
     CompositePropertySource composite = new CompositePropertySource(PropertySourcesConstants.APOLLO_PROPERTY_SOURCE_NAME);
 
-    //sort by order asc
+    //sort by order asc // 按照优先级，顺序遍历 Namespace
     ImmutableSortedSet<Integer> orders = ImmutableSortedSet.copyOf(NAMESPACE_NAMES.keySet());
     Iterator<Integer> iterator = orders.iterator();
 
     while (iterator.hasNext()) {
       int order = iterator.next();
       for (String namespace : NAMESPACE_NAMES.get(order)) {
+        // 创建 Apollo Config 对象
         Config config = ConfigService.getConfig(namespace);
-
+        // 创建 Namespace 对应的 ConfigPropertySource 对象
+        // 添加到 `composite` 中。
         composite.addPropertySource(configPropertySourceFactory.getConfigPropertySource(namespace, config));
       }
     }
 
     // clean up
     NAMESPACE_NAMES.clear();
-
+    // 若有 APOLLO_BOOTSTRAP_PROPERTY_SOURCE_NAME 属性源，添加到其后
     // add after the bootstrap property source or to the first
     if (environment.getPropertySources()
         .contains(PropertySourcesConstants.APOLLO_BOOTSTRAP_PROPERTY_SOURCE_NAME)) {
@@ -91,7 +105,7 @@ public class PropertySourcesProcessor implements BeanFactoryPostProcessor, Envir
 
       environment.getPropertySources()
           .addAfter(PropertySourcesConstants.APOLLO_BOOTSTRAP_PROPERTY_SOURCE_NAME, composite);
-    } else {
+    } else {// 若没 APOLLO_BOOTSTRAP_PROPERTY_SOURCE_NAME 属性源，添加到首个
       environment.getPropertySources().addFirst(composite);
     }
   }
@@ -112,14 +126,15 @@ public class PropertySourcesProcessor implements BeanFactoryPostProcessor, Envir
   }
 
   private void initializeAutoUpdatePropertiesFeature(ConfigurableListableBeanFactory beanFactory) {
+    // 若未开启属性的自动更新功能，直接返回
     if (!configUtil.isAutoUpdateInjectedSpringPropertiesEnabled() ||
         !AUTO_UPDATE_INITIALIZED_BEAN_FACTORIES.add(beanFactory)) {
       return;
     }
-
+    // 创建 AutoUpdateConfigChangeListener 对象
     AutoUpdateConfigChangeListener autoUpdateConfigChangeListener = new AutoUpdateConfigChangeListener(
         environment, beanFactory);
-
+    // 循环，向 ConfigPropertySource 注册配置变更器
     List<ConfigPropertySource> configPropertySources = configPropertySourceFactory.getAllConfigPropertySources();
     for (ConfigPropertySource configPropertySource : configPropertySources) {
       configPropertySource.addChangeListener(autoUpdateConfigChangeListener);

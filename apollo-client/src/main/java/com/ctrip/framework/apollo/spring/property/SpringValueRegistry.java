@@ -15,8 +15,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.common.collect.Multimaps;
 import org.springframework.beans.factory.BeanFactory;
 
+/**
+ * SpringValue 注册表
+ */
 public class SpringValueRegistry {
   private static final long CLEAN_INTERVAL_IN_SECONDS = 5;
+  /**
+   * SpringValue 集合
+   *
+   * KEY：属性 KEY ，即 Config 配置 KEY
+   * VALUE：SpringValue 数组
+   */
   private final Map<BeanFactory, Multimap<String, SpringValue>> registry = Maps.newConcurrentMap();
   private final AtomicBoolean initialized = new AtomicBoolean(false);
   private final Object LOCK = new Object();

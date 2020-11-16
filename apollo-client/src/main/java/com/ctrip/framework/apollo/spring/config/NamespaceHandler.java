@@ -11,7 +11,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 
 /**
- * @author Jason Song(song_s@ctrip.com)
+ * @author Jason Song(song_s@ctrip.com)  Apollo 的 XML Namespace 的处理器
  */
 public class NamespaceHandler extends NamespaceHandlerSupport {
   private static final Splitter NAMESPACE_SPLITTER = Splitter.on(",").omitEmptyStrings().trimResults();
@@ -34,12 +34,13 @@ public class NamespaceHandler extends NamespaceHandlerSupport {
 
     @Override
     protected void doParse(Element element, BeanDefinitionBuilder builder) {
+      // 解析 `namespaces` 属性，默认为 `"application"`
       String namespaces = element.getAttribute("namespaces");
       //default to application
       if (Strings.isNullOrEmpty(namespaces)) {
         namespaces = ConfigConsts.NAMESPACE_APPLICATION;
       }
-
+      // 解析 `order` 属性，默认为 Ordered.LOWEST_PRECEDENCE;
       int order = Ordered.LOWEST_PRECEDENCE;
       String orderAttribute = element.getAttribute("order");
 
@@ -51,6 +52,7 @@ public class NamespaceHandler extends NamespaceHandlerSupport {
               String.format("Invalid order: %s for namespaces: %s", orderAttribute, namespaces));
         }
       }
+      // 添加到 PropertySourcesProcessor
       PropertySourcesProcessor.addNamespaces(NAMESPACE_SPLITTER.splitToList(namespaces), order);
     }
   }

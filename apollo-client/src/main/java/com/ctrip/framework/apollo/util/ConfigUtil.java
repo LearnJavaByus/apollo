@@ -297,7 +297,7 @@ public class ConfigUtil {
       autoUpdateInjectedSpringProperties = Boolean.parseBoolean(enableAutoUpdate.trim());
     }
   }
-
+  //判断Spring Placeholder 的自动更新的功能是否开启
   public boolean isAutoUpdateInjectedSpringPropertiesEnabled() {
     return autoUpdateInjectedSpringProperties;
   }

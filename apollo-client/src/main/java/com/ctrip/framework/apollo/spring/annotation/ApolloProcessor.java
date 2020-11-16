@@ -12,6 +12,8 @@ import org.springframework.util.ReflectionUtils;
 
 /**
  * Create by zhangzheng on 2018/2/6
+ *
+ * 实现 BeanPostProcessor、PriorityOrdered 接口，Apollo 处理器抽象类，封装了在 Spring Bean 初始化之前，处理属性和方法。
  */
 public abstract class ApolloProcessor implements BeanPostProcessor, PriorityOrdered {
 
@@ -19,9 +21,11 @@ public abstract class ApolloProcessor implements BeanPostProcessor, PriorityOrde
   public Object postProcessBeforeInitialization(Object bean, String beanName)
       throws BeansException {
     Class clazz = bean.getClass();
+    // 处理所有 Field
     for (Field field : findAllField(clazz)) {
       processField(bean, beanName, field);
     }
+    // 处理所有的 Method
     for (Method method : findAllMethod(clazz)) {
       processMethod(bean, beanName, method);
     }
