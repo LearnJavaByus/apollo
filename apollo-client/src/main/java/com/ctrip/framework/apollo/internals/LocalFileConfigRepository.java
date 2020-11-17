@@ -119,7 +119,9 @@ public class LocalFileConfigRepository extends AbstractConfigRepository
     }
     Properties newFileProperties = new Properties();
     newFileProperties.putAll(newProperties);
+    // 将配置写入本地文件
     updateFileProperties(newFileProperties, m_upstream.getSourceType());
+    // 触发监听器，由父类通知相关bean
     this.fireRepositoryChange(namespace, newProperties);
   }
 
@@ -173,10 +175,13 @@ public class LocalFileConfigRepository extends AbstractConfigRepository
 
   private synchronized void updateFileProperties(Properties newProperties, ConfigSourceType sourceType) {
     this.m_sourceType = sourceType;
+    // 配置没有改变，则返回
     if (newProperties.equals(m_fileProperties)) {
       return;
     }
+    // 新的配置赋盖旧配置
     this.m_fileProperties = newProperties;
+    // 流式写入文件过程
     persistLocalCacheFile(m_baseDir, m_namespace);
   }
 

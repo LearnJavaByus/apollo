@@ -124,6 +124,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     gson = new Gson();
     this.trySync(); // 尝试同步配置
     this.schedulePeriodicRefresh(); // 初始化定时刷新配置的任务
+    //长轮询的开启入口
     this.scheduleLongPollingRefresh(); // 注册自己到 RemoteConfigLongPollService 中，实现配置更新的实时通知
   }
 

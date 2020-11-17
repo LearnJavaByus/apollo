@@ -21,11 +21,13 @@ public class PropertiesCompatibleFileConfigRepository extends AbstractConfigRepo
 
   @Override
   protected synchronized void sync() {
+    // 获取当前配置
     Properties current = configFile.asProperties();
 
     Preconditions.checkState(current != null, "PropertiesCompatibleConfigFile.asProperties should never return null");
-
+    // 当前值与缓存值比较
     if (cachedProperties != current) {
+      // 不相等，则赋值为当前值
       cachedProperties = current;
       this.fireRepositoryChange(configFile.getNamespace(), cachedProperties);
     }
@@ -51,6 +53,7 @@ public class PropertiesCompatibleFileConfigRepository extends AbstractConfigRepo
 
   @Override
   public void onChange(ConfigFileChangeEvent changeEvent) {
+    // 执行
     this.trySync();
   }
 }
