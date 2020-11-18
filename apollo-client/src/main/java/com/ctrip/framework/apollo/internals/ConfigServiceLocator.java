@@ -31,12 +31,24 @@ import com.google.common.escape.Escaper;
 import com.google.common.net.UrlEscapers;
 import com.google.gson.reflect.TypeToken;
 
+/**
+ * Config Service 定位器。
+ *
+ * 初始时，从 Meta Service 获取 Config Service 集群地址进行缓存。
+ * 定时任务，每 5 分钟，从 Meta Service 获取 Config Service 集群地址刷新缓存。
+ */
 public class ConfigServiceLocator {
   private static final Logger logger = LoggerFactory.getLogger(ConfigServiceLocator.class);
   private HttpUtil m_httpUtil;
   private ConfigUtil m_configUtil;
+  /**
+   * ServiceDTO 数组的缓存
+   */
   private AtomicReference<List<ServiceDTO>> m_configServices;
   private Type m_responseType;
+  /**
+   * 定时任务 ExecutorService
+   */
   private ScheduledExecutorService m_executorService;
   private static final Joiner.MapJoiner MAP_JOINER = Joiner.on("&").withKeyValueSeparator("=");
   private static final Escaper queryParamEscaper = UrlEscapers.urlFormParameterEscaper();
@@ -57,7 +69,7 @@ public class ConfigServiceLocator {
   }
 
   private void initConfigServices() {
-    // get from run time configurations
+    // get from run time configurations 获取特制配置参数
     List<ServiceDTO> customizedConfigServices = getCustomizedConfigService();
 
     if (customizedConfigServices != null) {
@@ -65,8 +77,9 @@ public class ConfigServiceLocator {
       return;
     }
 
-    // update from meta service
+    // update from meta service  // 初始拉取 Config Service 地址
     this.tryUpdateConfigServices();
+    // 创建定时任务，定时拉取 Config Service 地址
     this.schedulePeriodicRefresh();
   }
 
@@ -110,10 +123,11 @@ public class ConfigServiceLocator {
    * @return the services dto
    */
   public List<ServiceDTO> getConfigServices() {
+    // 缓存为空，强制拉取
     if (m_configServices.get().isEmpty()) {
       updateConfigServices();
     }
-
+    // 返回 ServiceDTO 数组
     return m_configServices.get();
   }
 
@@ -141,6 +155,7 @@ public class ConfigServiceLocator {
   }
 
   private synchronized void updateConfigServices() {
+    // 获取 /services/config 接口
     String url = assembleMetaServiceUrl();
 
     HttpRequest request = new HttpRequest(url);
@@ -151,6 +166,7 @@ public class ConfigServiceLocator {
       Transaction transaction = Tracer.newTransaction("Apollo.MetaService", "getConfigService");
       transaction.addData("Url", url);
       try {
+        // 请求 /services/config
         HttpResponse<List<ServiceDTO>> response = m_httpUtil.doGet(request, m_responseType);
         transaction.setStatus(Transaction.SUCCESS);
         List<ServiceDTO> services = response.getBody();
@@ -158,6 +174,7 @@ public class ConfigServiceLocator {
           logConfigService("Empty response!");
           continue;
         }
+        // 缓存config service
         setConfigServices(services);
         return;
       } catch (Throwable ex) {
