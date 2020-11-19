@@ -33,12 +33,18 @@ public class DefaultConfigFactory implements ConfigFactory {
     m_configUtil = ApolloInjector.getInstance(ConfigUtil.class);
   }
 
+  /**
+   * 3.DefaultConfigFactory.create(String namespace)
+   * @param namespace the namespace
+   * @return
+   */
   @Override
   public Config create(String namespace) {
     ConfigFileFormat format = determineFileFormat(namespace);
     if (ConfigFileFormat.isPropertiesCompatible(format)) {
       return new DefaultConfig(namespace, createPropertiesCompatibleFileConfigRepository(namespace, format));
     }
+    // 4.createLocalConfigRepository-->new LocalFileConfigRepository(namespace, createRemoteConfigRepository(namespace));
     return new DefaultConfig(namespace, createLocalConfigRepository(namespace));
   }
 
@@ -63,11 +69,17 @@ public class DefaultConfigFactory implements ConfigFactory {
     return null;
   }
 
+  /**
+   * 4.createLocalConfigRepository-->new LocalFileConfigRepository(namespace, createRemoteConfigRepository(namespace));
+   * @param namespace
+   * @return
+   */
   LocalFileConfigRepository createLocalConfigRepository(String namespace) {
     if (m_configUtil.isInLocalMode()) {
       logger.warn(
           "==== Apollo is in local mode! Won't pull configs from remote server for namespace {} ! ====",
           namespace);
+      //5.调用 LocalFileConfigRepository的构造方法 --> RemoteConfigRepository
       return new LocalFileConfigRepository(namespace);
     }
     return new LocalFileConfigRepository(namespace, createRemoteConfigRepository(namespace));

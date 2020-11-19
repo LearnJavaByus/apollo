@@ -42,7 +42,7 @@ public class LocalFileConfigRepository extends AbstractConfigRepository
   private volatile ConfigSourceType m_sourceType = ConfigSourceType.LOCAL;
 
   /**
-   * Constructor.
+   * Constructor. 6.调用RemoteConfigRepository构造方法
    *
    * @param namespace the namespace
    */
@@ -54,7 +54,9 @@ public class LocalFileConfigRepository extends AbstractConfigRepository
     m_namespace = namespace;
     m_configUtil = ApolloInjector.getInstance(ConfigUtil.class);
     this.setLocalCacheDir(findLocalCacheDir(), false);
+    //
     this.setUpstreamRepository(upstream);
+    // 尝试同步
     this.trySync();
   }
 

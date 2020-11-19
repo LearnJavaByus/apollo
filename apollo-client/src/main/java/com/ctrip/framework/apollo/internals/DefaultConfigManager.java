@@ -23,6 +23,11 @@ public class DefaultConfigManager implements ConfigManager {
     m_factoryManager = ApolloInjector.getInstance(ConfigFactoryManager.class);
   }
 
+  /**
+   * 2.DefaultConfigManager.getConfig
+   * @param namespace the namespace
+   * @return
+   */
   @Override
   public Config getConfig(String namespace) {
     Config config = m_configs.get(namespace);

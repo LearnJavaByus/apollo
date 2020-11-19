@@ -52,7 +52,7 @@ public class ConfigService {
   }
 
   /**
-   * Get the config instance for the namespace.
+   * Get the config instance for the namespace. 1.调用ConfigService.getService
    *
    * @param namespace the namespace of the config
    * @return config instance

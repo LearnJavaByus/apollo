@@ -68,6 +68,10 @@ public class ApolloApplicationContextInitializer implements
 
   private int order = DEFAULT_ORDER;
 
+  /**
+   * springboot 加载 Apollo 的入口
+   * @param context
+   */
   @Override
   public void initialize(ConfigurableApplicationContext context) {
     ConfigurableEnvironment environment = context.getEnvironment();
@@ -101,6 +105,7 @@ public class ApolloApplicationContextInitializer implements
 
     CompositePropertySource composite = new CompositePropertySource(PropertySourcesConstants.APOLLO_BOOTSTRAP_PROPERTY_SOURCE_NAME);
     for (String namespace : namespaceList) {
+      // 获取配置
       Config config = ConfigService.getConfig(namespace);
 
       composite.addPropertySource(configPropertySourceFactory.getConfigPropertySource(namespace, config));
